@@ -1,0 +1,424 @@
+MongoDB is a cross-platform, open-source, NoSQL database, used by many modern Node-based web applications to persist data.
+
+In this beginner-friendly tutorial, I’ll demonstrate how to install Mongo, then start using it to store and query data. I’ll also look at how to interact with a Mongo database from within a Node program, and also highlight some of the differences between Mongo and a traditional relational database (such as MySQL) along the way.
+
+What Is MongoDB?
+MongoDB is a document-oriented database. This means that it doesn’t use tables and rows to store its data, but instead collections of JSON-like documents. These documents support embedded fields, so related data can be stored within them.
+
+MongoDB is also a schema-less database, so we don’t need to specify the number or type of columns before inserting our data.
+
+Here’s an example of what a MongoDB document might look like:
+
+{
+  _id: ObjectId(3da252d3902a),
+  type: "Tutorial",
+  title: "An Introduction to MongoDB",
+  author: "Manjunath M",
+  tags: [ "mongodb", "compass", "crud" ],
+  categories: [
+    {
+      name: "javascript",
+      description: "Tutorialss on client-side and server-side JavaScript programming"
+    },
+    {
+      name: "databases",
+      description: "Tutorialss on different kinds of databases and their management"
+    },
+  ],
+  content: "MongoDB is a cross-platform, open-source, NoSQL database..."
+}
+As you can see, the document has a number of fields (type, title etc.), which store values (“Tutorial”, “An Introduction to MongoDB” etc.). These values can contain strings, numbers, arrays, arrays of sub-documents (for example, the categories field), geo-coordinates and more.
+
+The _id field name is reserved for use as a primary key. Its value must be unique in the collection, it’s immutable, and it may be of any type other than an array.
+
+Tip: for those wondering what “JSON-like” means, internally Mongo uses something called BSON (short for Bin­ary JSON). In practice, you don’t really need to know much about BSON when working with MongoDB.
+
+As you might guess, a document in a NoSQL database corresponds to a row in an SQL database. A group of documents together is known as a collection, which is roughly synonymous with a table in a relational database.
+
+Here’s a table summarizing the different terms:
+
+
+
+SQL Server	MongoDB
+Database	Database
+Table	    Collection
+Row	        Document
+Column	    Field
+Index	    Index
+
+
+If you’re starting a new project and are unsure whether to choose Mongo or a relational database such as MySQL.
+Installing MongoDB
+Note: if you’d just like to follow along with this tutorial without installing any software on your PC, there are a couple of online services you can use. Mongo playground, for example, is a simple sandbox to test and share MongoDB queries online.
+
+MongoDB comes in various editions. The one we’re interested in is the MongoDB Community Edition.
+
+The project’s home page has excellent documentation on installing Mongo, and I won’t try to replicate that here. Rather, I’ll offer you links to instructions for each of the main operating systems:
+
+Install MongoDB Community Edition on Windows
+Install MongoDB Community Edition on macOS
+Install MongoDB Community Edition on Ubuntu
+If you use a non-Ubuntu-based version of Linux, you can check out this page for installation instructions for other distros. MongoDB is also normally available through the official Linux software channels, but sometimes this will pull in an outdated version.
+
+
+
+
+Post Installation Configuration
+Once you have MongoDB installed for your system, you might encounter this error:
+
+dbpath (/data/db) does not exist.
+ Create this directory or give existing directory in --dbpath.
+ See http://dochub.mongodb.org/core/startingandstoppingmongo
+This means that Mongo can’t find (or access) the directory it uses to store its databases. This is pretty easy to remedy:
+The first command creates the data/db directory. The second sets permissions so that Mongo can write to that directory.
+
+
+
+Install the Compass GUI
+We’ll be using the command line in this tutorial, but MongoDB also offers a tool called Compass to connect to and manage your databases using a GUI.
+
+If you’re on Windows, Compass can be installed as part of the main Mongo installation (just select the appropriate option from the wizard). Otherwise, you can download Compass for your respective OS here.
+
+
+The Mongo Shell
+We can test our installation by opening the Mongo shell. You can do this by opening a terminal window and typing mongo.
+
+Note: this assumes that <mongodb installation dir>/bin is in your path. If for any reason this isn’t the case, change into the <mongodb installation dir>/bin directory and rerun the command.
+
+If you get an Error: couldn't connect to server error, you’ll need to start the Mongo server (in a second terminal window) with the command mongod.
+
+Once you’re in the Mongo shell, type in db.version() to see the version of MongoDB you’re running. At the time of writing, this should output 4.2.2.
+
+Please note that you can exit the Mongo shell by running quit() and the Mongo daemon by pressing Ctrl + C at any time.
+
+Now let’s get acquainted with some MongoDB basics.
+
+Basic Database Operations
+Enter the Mongo shell if you haven’t already (by typing mongo into a terminal):
+
+[mj@localhost ~]$ mongo
+MongoDB shell version v4.2.2
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("08a624a0-b330-4233-b56b-1d5b15a48fea") }
+MongoDB server version: 4.2.2
+Let’s start off by creating a database to work with. To create a database, MongoDB has a use DATABASE_NAME command:
+
+> use exampledb
+switched to db exampledb
+To display all the existing databases, try show dbs:
+
+> show dbs
+
+admin          0.000GB
+config         0.000GB
+local          0.000GB
+The exampledb isn’t in the list because we need to insert at least one document into the database. To insert a document, you can use db.COLLECTION_NAME.insertOne({"key":"value"}). Here’s an example:
+
+> db.users.insertOne({name: "Bob"})
+{
+   "acknowledged" : true,
+   "insertedId" : ObjectId("5a52c53b223039ee9c2daaec")
+}
+MongoDB automatically creates a new users collection and inserts a document with the key–value pair 'name':'Bob'. The ObjectId returned is the ID of the document inserted. MongoDB creates a unique ObjectId for each document on creation, and it becomes the default value of the _id field.
+
+Now we should be able to see our database:
+
+>show dbs
+admin          0.000GB
+config         0.000GB
+exampledb      0.000GB
+local          0.000GB
+Similarly, you can confirm that the collection was created using the show collections command:
+
+> show collections
+users
+We’ve created a database, added a collection named users and inserted a document into it. Now let’s try dropping it. To drop an existing database, use the dropDatabase() command, as exemplified below:
+
+>db.dropDatabase()
+{ "dropped" : "exampledb", "ok" : 1 }
+show dbs confirms that the database was indeed dropped:
+
+> show dbs
+admin          0.000GB
+config         0.000GB
+local          0.000GB
+For more database operations, please consult the MongoDB reference page on database commands.
+
+User Management
+By now you’ve probably noticed that MongoDB doesn’t come with any kind of access control enabled.
+
+While not having to supply a username and password is nice for development, this is something you should change when using Mongo in production.
+
+Here are the steps for creating a database user with full read/write privileges:
+
+Ensure that you’ve started the Mongo server without any kind of access control (typically by typing mongod).
+Open a shell by typing mongo.
+From the shell, add a user with the readWrite role to the exampledb database. This will prompt you to enter a password. Obviously, replace “manjunath” with your desired user name:
+js
+use exampledb
+db.createUser(
+{
+user: "manjunath",
+pwd: passwordPrompt(),
+roles: [ { role: "readWrite" ]
+}
+)
+Exit the Mongo shell.
+Shut down the Mongo server, then restart it using mongod --auth. Clients that connect to this instance must now authenticate themselves.
+Reopen a shell like so: mongo --authenticationDatabase "exampledb" -u "manjunath" -p. You’ll now be prompted for your password.
+For further information, please consult the project’s documentation on enabling access control.
+
+MongoDB CRUD Operations
+As you might already know, the CRUD acronym stands for create, read, update, and delete. These are the four basic database operations that you can’t avoid while building an application. For instance, any modern application will have the ability to create a new user, read the user data, update the user information and, if needed, delete the user account. Let’s accomplish this at the database level using MongoDB.
+
+Create Operation
+Creation is the same as inserting a document into a collection. In the previous section, we inserted a single document using the db.collection.insertOne() syntax. There’s another method called db.collection.insertMany() that lets you insert multiple documents at once. Here’s the syntax:
+
+> db.collection.insertMany([ <document 1> , <document 2>, ... ])
+Let’s create a users collection and populate it with some actual users:
+
+> use exampledb
+> db.users.insertMany([
+   { name: "Tom",age:15, email: "tom@example.com" },
+   { name: "Bob", age:35, email:"bob@example.com" },
+   { name: "Kate", age: 27, email: "kate@example.com" },
+   { name: "Katherine", age:65, email:"katherine@example.com"}
+])
+
+{
+   "acknowledged" : true,
+   "insertedIds" : [
+      ObjectId("5e25bb58ba0cf16476aa56ff"),
+    ObjectId("5e25bb58ba0cf16476aa5700"),
+    ObjectId("5e25bb58ba0cf16476aa5701"),
+    ObjectId("5e25bb58ba0cf16476aa5702")
+   ]
+}
+The insertMany method accepts an array of objects and, in return, we get an array of ObjectIds.
+
+Read Operation
+A read operation is used to retrieve a document, or multiple documents from a collection. The syntax for the read operation is as follows:
+
+> db.collection.find(query, projection)
+To retrieve all user documents, you can do this:
+
+> db.users.find().pretty()
+{
+  "_id" : ObjectId("5e25bb58ba0cf16476aa56ff"),
+  "name" : "Tom",
+  "age" : 15,
+  "email" : "tom@example.com"
+}
+{
+  "_id" : ObjectId("5e25bb58ba0cf16476aa5700"),
+  "name" : "Bob",
+  "age" : 35,
+  "email" : "bob@example.com"
+}
+{
+  "_id" : ObjectId("5e25bb58ba0cf16476aa5701"),
+  "name" : "Kate",
+  "age" : 27,
+  "email" : "kate@example.com"
+}
+{
+  "_id" : ObjectId("5e25bb58ba0cf16476aa5702"),
+  "name" : "Katherine",
+  "age" : 65,
+  "email" : "katherine@example.com"
+}
+This corresponds to the SELECT * FROM USERS query for an SQL database.
+
+The pretty method is a cursor method, and there are many others too. You can chain these methods to modify your query and the documents that are returned by the query.
+
+Perhaps you need to filter queries to return a subset of the collection — such as finding all users who are below 30. You can modify the query like this:
+
+> db.users.find({ age: { $lt: 30 } })
+{ "_id" : ObjectId("5e25bb58ba0cf16476aa56ff"), "name" : "Tom", "age" : 15, "email" : "tom@example.com" }
+{ "_id" : ObjectId("5e25bb58ba0cf16476aa5701"), "name" : "Kate", "age" : 27, "email" : "kate@example.com" }
+In this example, $lt is a query filter operator that selects documents whose age field value is less than 30. There are many comparison and logical query filters available. You can see the entire list in the query selector documentation.
+
+Note: In Mongo, You can replicate SQL’s like query using a regex. For example, SELECT * FROM users WHERE name LIKE 'Kat%' translates to db.users.find({ name: /Kat.*/ }).
+
+Update Operation
+An update operation modifies documents in a collection. Similar to the create operation, MongoDB offers various methods for updating a document. For example:
+
+db.collection.updateOne(<filter>, <update>, <options>)
+db.collection.updateMany(<filter>, <update>, <options>).
+If you need to add an extra field — say, registration — to all the existing documents in a collection, you can do something like this:
+
+> db.users.updateMany({}, {$set: { registration: "incomplete"}})
+{ "acknowledged" : true, "matchedCount" : 4, "modifiedCount" : 4 }
+The first argument is an empty object because we want to update all documents in the collection. The $set is an update operator that sets the value of a field with the specified value. You can verify that the extra field was added using db.users.find().
+
+To update the value of documents that match certain criteria, updateMany() accepts a filter object as its first argument. For instance, you might want to overwrite the value of registration to complete for all users who are aged 18+. Here’s what you can do:
+
+> db.users.updateMany(
+  {age:{ $gt: 18} },
+  {$set: { registration: "complete"}
+})
+
+{ "acknowledged" : true, "matchedCount" : 3, "modifiedCount" : 3 }
+To update the registration details of a single user, you can do this:
+
+> db.users.updateOne(
+ {email: "tom@example.com" },
+ {$set: { registration: "complete"}
+})
+
+{ "acknowledged" : true, "matchedCount" : 1, "modifiedCount" : 1 }
+Delete Operation
+A delete operation removes a document from the collection. To delete a document, you can use the db.collection.deleteOne(<filter>, <options>) method, and to delete multiple documents, you can use the db.collection.deleteMany(<filter>, <options>) method.
+
+To delete documents based on certain criteria, you can use the filter operators that we used for the read and update operation:
+
+> db.users.updateOne(
+ {email: "tom@example.com" },
+ {$set: { status: "dormant"}
+})
+
+{ "acknowledged" : true, "matchedCount" : 1, "modifiedCount" : 1 }
+
+> db.users.deleteMany( { status: { $in: [ "dormant", "inactive" ] } } )
+
+{ "acknowledged" : true, "deletedCount" : 1 }
+This deletes all documents with a status of “dormant” or “inactive”.
+
+Schema Validation
+Earlier in this tutorial, when I said that Mongo is a schema-less database, I was over simplifying somewhat.
+
+It is schema-less in so far as we don’t need to specify the number or type of columns before inserting our data. However, it’s also possible to define a JSON schema and use it to enforce validation rules for our data.
+
+Let’s create a validatedUsers collection, where we can use the validator construct to specify that a name is mandatory and that an email field matches a certain pattern:
+
+> db.createCollection("validatedUsers", {
+  validator: {
+    $jsonSchema: {
+      required: [ "name", "email" ],
+      properties: {
+        name: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+        email: {
+          bsonType: "string",
+          pattern: "^.+\@.+$",
+          description: "must be a valid email and is required"
+        }
+      }
+    }
+  }
+})
+
+{ "ok" : 1 }
+Now if we try to insert incorrect data, we’ll receive a validation error:
+
+> db.validatedUsers.insertOne({ name: "Jim", email: "not-an-email" })
+
+2020-01-22T09:56:56.918+0100 E  QUERY    &lsqb;js] uncaught exception: WriteError({
+  "index" : 0,
+  "code" : 121,
+  "errmsg" : "Document failed validation",
+  "op" : {
+    "_id" : ObjectId("5e280e5847eb18010666530c"),
+    "name" : "Jim",
+    "email" : "not-an-email"
+  }
+}) :
+WriteError({
+  "index" : 0,
+  "code" : 121,
+  "errmsg" : "Document failed validation",
+  "op" : {
+    "_id" : ObjectId("5e280e5847eb18010666530c"),
+    "name" : "Jim",
+    "email" : "not-an-email"
+  }
+})
+WriteError@src/mongo/shell/bulk_api.js:458:48
+mergeBatchResults@src/mongo/shell/bulk_api.js:855:49
+executeBatch@src/mongo/shell/bulk_api.js:919:13
+Bulk/this.execute@src/mongo/shell/bulk_api.js:1163:21
+DBCollection.prototype.insertOne@src/mongo/shell/crud_api.js:264:9
+@(shell):1:1
+You can read more about schema validation in the project’s documentation.
+
+An Overview of MongoDB Drivers
+For an application to communicate with the MongoDB server, you have to use a client-side library called a driver. The driver sits on top of the database server and lets you interact with the database using the driver API. MongoDB has official and third-party drivers for all popular languages and environments.
+
+The most popular drivers for Node.js include the native MongoDB driver and Mongoose. I’ll briefly discuss both of these here.
+
+MongoDB Node.js Driver
+This is the official MongoDB driver for Node.js. The driver can interact with the database using either callbacks, promises or async … await.
+
+You can install it like so:
+
+npm install mongod
+The example below demonstrates how to connect the driver to the server, and list out all of the documents in the users collection.
+
+Note: if you connected to the Mongo server using a name and password, you’ll need to specify these details in your code.
+
+Name and Password
+If you connected to the Mongo server using a name and password, you’ll need to specify these details in your code.
+
+const MongoClient = require('mongodb').MongoClient;
+const url = 'mongodb://localhost:27017/exampledb';
+
+// With authentication:
+// const url = 'mongodb://<userName>:<passWord>@localhost:27017/exampledb';
+// Further reading: https://docs.mongodb.com/manual/reference/connection-string/
+
+(async () => {
+  let client;
+
+  try {
+    client = await MongoClient.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
+    const db = client.db('exampledb');
+    const collection = db.collection('users');
+    const users = await collection.find().toArray();
+    console.log(users);
+  } catch (err) {
+    console.log(err.stack);
+  }
+
+  if (client) {
+    client.close();
+  }
+})();
+The MongoClient.connect returns a promise. Any error is caught by the catch block and any database actions go inside the try block. If you look through the Mongo driver documentation, you’ll see that the API is pretty similar to what we’ve been using in the shell.
+
+Mongoose Driver
+Another popular Node.js driver for MongoDB is Mongoose. Mongoose is built on top of the official MongoDB driver. Back when Mongoose was released, it had tons of features that the native MongoDB driver didn’t have. One prominent feature was the ability to define a schema structure that would get mapped onto the database’s collection. However, the latest versions of MongoDB have adopted some of these features in the form of JSON schema and schema validation.
+
+Apart from schema, other fancy features of Mongoose include models, validators and middleware, the populate method, plugins and so on. You can read more about these in the Mongoose docs.
+
+You can install Mongoose like so:
+
+npm install mongoose
+Here’s the Mongoose equivalent of the previous example:
+
+const mongoose = require('mongoose');
+
+async function run() {
+  await mongoose.connect('mongodb://localhost:27017/exampledb', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  });
+
+  const userSchema = new mongoose.Schema({ name: String, age: String, email: String });
+  const User = mongoose.model('User', userSchema);
+
+  const users = await User.find();
+  console.log(users);
+  mongoose.connection.close();
+}
+
+run().catch(error => console.log(error.stack));
+In Mongoose, everything starts with a a Schema. Each schema maps to a MongoDB collection and defines the shape of the documents within that collection.
+
+Conclusion
+MongoDB is a popular NoSQL database solution that suits modern development requirements. In this tutorial, we’ve covered the basics of MongoDB, the Mongo shell and some of the popular drivers available. We’ve also explored the common database operations and CRUD actions within the Mongo shell. Now it’s time for you to head out and try what we’ve covered here and more. If you want to learn more, I recommend creating a REST API with MongoDB and Node to acquaint yourself with the common database operations and methods.
